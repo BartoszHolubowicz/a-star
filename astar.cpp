@@ -13,7 +13,7 @@ using namespace std;
 const int W = 20, H = 20, STEP = 1;
 
 enum Dir {Up, Down, Left, Right, Undefined = -1};
-enum NodeType {Empty = 0, Obstacle = 5, Path = 3};
+enum NodeType {Empty = 0, Obstacle = 5, Checked = 1, Path = 3};
 
 class Node {
   public:
@@ -31,9 +31,6 @@ class Node {
 
     bool operator <(Node& node) {
       return getFCost() < node.getFCost();
-    }
-    bool operator =(Node& node) {
-      return getId() == node.getId();
     }
 
     int getId() {
@@ -93,6 +90,8 @@ class Node {
     }
 
     string toString() {
+      if (this == NULL)
+        return "NULL Node";
       return "Node(" + to_string(x) + ", " + to_string(y) + ") of type " + to_string(type);
     }
 
@@ -103,27 +102,10 @@ class Node {
 
 class Grid {
   public:
-    static void displayVectorNodes(vector<Node*> row) {
-      for (Node *node : row)
-        cout << node->toString() << endl;
-    }
-
     static void displayGrid(vector<vector<Node*> > grid) {
       for (auto row : grid) {
         for (Node* node : row) {
           cout << node->type << " ";
-        }
-        cout << endl;
-      }
-    }
-
-    static void displayGrid2(vector<vector<Node*> > grid) {
-      for (auto row : grid) {
-        for (Node* node : row) {
-          if (node->getFCost() >= FLT_MAX)
-            printf("MAX ");
-          else
-            printf("%.2f ", node->getFCost());
         }
         cout << endl;
       }
@@ -223,9 +205,9 @@ class Field {
       return result;
     }
 
-    vector<Node*> getPath(Node* start, Node* end) {
+    vector<Node*> getPath(Node* begin, Node* end) {
       vector<Node*> result;
-      Node* current = start;
+      Node* current = begin;
 
       while (current != NULL) {
         result.push_back(current);
@@ -261,7 +243,6 @@ class Field {
       if (node->parent == NULL)
         node->parent = closedList.top();
       // Set new f cost and parent if node's f cost is higher than previous one
-      cout << node->calculateFCost(target) << endl;
       if (node->getFCost() > node->calculateFCost(target)) {
         node->parent = closedList.top();
         node->setHCost(node->calculateHCost(target));
@@ -277,6 +258,7 @@ class Field {
     }
 
     void addToClosedList(Node *node) {
+      node->type = Checked;
       set<Node*>::iterator it = openList.find(node);
       if (it != openList.end())
         openList.erase(it);
@@ -293,14 +275,16 @@ class Field {
     bool isAtTarget(int x, int y) {
       return x == target->getX() && y == target->getY();
     }
+
     bool isAtTarget(Node* node) {
-      return node == target;
+      return isAtTarget(node->getX(), node->getY());
     }
 
     void aStar() {
       // Closed list initialized with start node
       closedList.push(start);
       
+      // do-while, since at the beginning openList.size() will be equal to 0
       do {
         // Adding empty nodes around last visited node
         addToOpenList(getEmptyNeighbours(closedList.top()));
@@ -308,8 +292,6 @@ class Field {
         // while also removing it from the open list
         addToClosedList(findLowestFCostNode(openList));
       } while (isAtTarget(closedList.top()) == false && openList.size() > 0);
-
-      Grid::displayGrid2(grid);
 
       if (isAtTarget(closedList.top()) == false && openList.size() == 0) {
         cout << "There's no optimal way to the target :(\n";
@@ -327,7 +309,6 @@ class Field {
 
 int main() {
   Field F(Grid::loadGrid("grid.txt"));
-  Grid::displayGrid(F.grid);
   F.aStar();
 
   return 0;
