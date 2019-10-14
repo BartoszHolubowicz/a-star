@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <stack>
 #include <fstream>
@@ -33,7 +32,13 @@ class Node {
       return getFCost() < node.getFCost();
     }
 
+    bool operator !=(Node& node) {
+      return getId() != node.getId();
+    }
+
     int getId() {
+      if (this == NULL)
+        return -1;
       return x + y * W;
     }
 
@@ -141,9 +146,9 @@ class Field {
     Node *start, *target;
 
     Field(vector<vector<Node*> > _grid) {
-      start = new Node(0, 0, Empty);
-      target = new Node(19, 19, Empty);
       grid = _grid;
+      start = (*this)(0, 0);
+      target = (*this)(19, 19);
     }
 
     Node*& operator ()(int i, int j) {
@@ -209,10 +214,12 @@ class Field {
       vector<Node*> result;
       Node* current = begin;
 
-      while (current != NULL) {
+      while (current != end) {
         result.push_back(current);
         current = current->parent;
       }
+      // TODO: Getting last node in the loop instead of adding it outside of the loop
+      result.push_back(end);
 
       return result;
     }
@@ -224,8 +231,8 @@ class Field {
       }
     }
 
-    Node* findLowestFCostNode(set<Node*> list) {
-      set<Node*>::iterator it = list.begin();
+    Node* findLowestFCostNode(vector<Node*> list) {
+      vector<Node*>::iterator it = list.begin();
       Node *result = *it;
       ++it;
 
@@ -247,7 +254,7 @@ class Field {
         node->parent = closedList.top();
         node->setHCost(node->calculateHCost(target));
       }
-      openList.insert(node);
+      openList.push_back(node);
     }
 
     void addToOpenList(vector<Node*> nodes) {
@@ -259,7 +266,7 @@ class Field {
 
     void addToClosedList(Node *node) {
       node->type = Checked;
-      set<Node*>::iterator it = openList.find(node);
+      vector<Node*>::iterator it = find(openList.begin(), openList.end(), node);
       if (it != openList.end())
         openList.erase(it);
       closedList.push(node);
@@ -303,7 +310,7 @@ class Field {
     }
 
   private:
-    set<Node*> openList;
+    vector<Node*> openList;
     stack<Node*> closedList;
 };
 
